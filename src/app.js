@@ -89,6 +89,7 @@ const app = () => {
             watchedState.posts.push(...handledFeed.posts);
           })
           .catch((error) => {
+            console.log(error)
             watchedState.status = 'invalid';
             watchedState.error = error.message.key;
           });

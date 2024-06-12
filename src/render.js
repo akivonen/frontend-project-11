@@ -35,6 +35,16 @@ const formStateRender = (elements, i18n, value) => {
     default: throw new Error(`Unknown form status value ${value}`);
   }
 };
+const createButtonView = (postId, i18n) => {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.classList.add('btn', 'btn-outline-primary', 'btn-sm');
+  button.dataset.id = postId;
+  button.dataset.bsToggle = 'modal';
+  button.dataset.bsTarget = '#modal';
+  button.textContent = i18n.t('elements.buttonView');
+  return button;
+};
 const createFeedsView = (feeds) => {
   const feedsArr = feeds.map((feed) => {
     const li = document.createElement('li');
@@ -50,17 +60,10 @@ const createFeedsView = (feeds) => {
   });
   return feedsArr;
 };
-const createPostsView = (posts) => {
+const createPostsView = (posts, i18n) => {
   const postsArr = posts.map((post) => {
     const li = document.createElement('li');
-    li.classList.add(
-      'list-group-item',
-      'd-flex',
-      'justify-content-between',
-      'align-items-start',
-      'border-0',
-      'border-end-0',
-    );
+    li.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-start', 'border-0', 'border-end-0');
     const link = document.createElement('a');
     link.classList.add('fw-bold');
     link.dataset.id = post.id;
@@ -68,44 +71,32 @@ const createPostsView = (posts) => {
     link.setAttribute('rel', 'noopener noreferrer');
     link.href = post.link;
     link.textContent = `${post.title}`;
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.classList.add('btn', 'btn-outline-primary', 'btn-sm');
-    button.dataset.id = post.id;
-    button.dataset.bsToggle = 'modal';
-    button.dataset.bsTarget = '#modal';
-    button.textContent = 'Просмотр';
+    const button = createButtonView(post.id, i18n);
     li.append(link, button);
     return li;
   });
   return postsArr;
 };
-const createListView = (listType, { feedsEl, postsEl }, data) => {
+const contentMapping = {
+  feeds: (data) => createFeedsView(data),
+  posts: (data, i18n) => createPostsView(data, i18n),
+};
+const createListView = (listType, elements, data, i18n) => {
   const container = document.createElement('div');
   container.classList.add('card', 'border-0');
   const cardBody = document.createElement('div');
   cardBody.classList.add('card-body');
   const cardTitle = document.createElement('h2');
   cardTitle.classList.add('card-title', 'h4');
+  cardTitle.textContent = i18n.t(`elements.lists.${listType}`);
   cardBody.append(cardTitle);
+  const listEl = elements[`${listType}El`];
+  listEl.textContent = '';
   const ul = document.createElement('ul');
   ul.classList.add('list-group', 'border-0', 'rounded-0');
+  ul.append(...contentMapping[listType](data, i18n));
   container.append(cardBody, ul);
-  switch (listType) {
-    case 'feeds':
-      cardTitle.textContent = 'Фиды';
-      feedsEl.textContent = '';
-      ul.append(...createFeedsView(data));
-      feedsEl.append(container);
-      break;
-    case 'posts':
-      cardTitle.textContent = 'Посты';
-      postsEl.textContent = '';
-      ul.append(...createPostsView(data));
-      postsEl.append(container);
-      break;
-    default: throw new Error(`Unknown list type ${listType}`);
-  }
+  listEl.append(container);
 };
 
 const render = (state, elements, i18n) => (path, value) => {
@@ -114,10 +105,10 @@ const render = (state, elements, i18n) => (path, value) => {
       formStateRender(elements, i18n, value);
       break;
     case 'feeds':
-      createListView('feeds', elements, state.feeds);
+      createListView('feeds', elements, state.feeds, i18n);
       break;
     case 'posts':
-      createListView('posts', elements, state.posts);
+      createListView('posts', elements, state.posts, i18n);
       break;
     case 'error':
       renderError(elements, state.error, i18n);

@@ -10,5 +10,12 @@ export default {
       emptyField: 'Не должно быть пустым',
       parsingError: 'Ошибка парсинга',
     },
+    elements: {
+      buttonView: 'Просмотр',
+      lists: {
+        feeds: 'Фиды',
+        posts: 'Посты',
+      },
+    },
   },
 };
