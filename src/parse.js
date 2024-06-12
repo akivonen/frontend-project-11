@@ -8,7 +8,7 @@ const getPosts = (data) => {
   return posts;
 };
 
-const parse = (xml, url) => {
+const parse = (url, xml) => {
   const parser = new DOMParser();
   const data = parser.parseFromString(xml, 'application/xml');
   const errorNode = data.querySelector('parsererror');

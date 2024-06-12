@@ -14,24 +14,35 @@ const proxify = (url) => {
   return proxifiedUrl.toString();
 };
 const requestData = (url) => axios.get(proxify(url));
-
-const handleData = (data) => {
-  const { title, description, posts } = data;
-  const feed = {
-    id: uniqueId(),
-    title,
-    description,
-    posts,
-  };
-  const handledPosts = posts.map((post) => ({
+const handleData = (state, data) => {
+  const feed = { ...data, id: uniqueId() };
+  const posts = feed.posts.map((post) => ({
+    ...post,
     id: uniqueId(),
     feedId: feed.id,
-    title: post.title,
-    description: post.description,
-    link: post.link,
-    pubDate: post.pubDate,
   }));
-  return { feed, posts: handledPosts };
+  const newPosts = posts.filter((newPost) => !state.posts
+    .map((post) => (post.link))
+    .includes(newPost.link));
+  return { feed, posts: newPosts };
+};
+const handleResponse = (url, content, state) => {
+  const parsedData = parse(url, content);
+  return handleData(state, parsedData);
+};
+const refreshPosts = (watchedState) => {
+  const promises = watchedState.feeds.map((feed) => requestData(feed.url)
+    .then(({ data }) => {
+      const { posts } = handleResponse(feed.url, data.contents, watchedState);
+      if (posts.length) {
+        watchedState.posts.unshift(...posts);
+      }
+    })
+    .catch((error) => {
+      console.log(`Error: ${error}, Feed url: ${feed.url}`);
+    }));
+  return Promise.all(promises)
+    .finally(() => setTimeout(() => refreshPosts(watchedState), 5000));
 };
 
 const app = () => {
@@ -68,7 +79,8 @@ const app = () => {
       const watchedState = onChange(state, render(state, elements, i18n));
       elements.form.addEventListener('submit', (e) => {
         e.preventDefault();
-        const schema = yup.string().url().required().notOneOf(state.feeds);
+        const listedFeedLinks = state.feeds.map((feed) => feed.url);
+        const schema = yup.string().url().required().notOneOf(listedFeedLinks);
         const formData = new FormData(e.target);
         const url = formData.get('url');
         schema.validate(url)
@@ -78,20 +90,15 @@ const app = () => {
             return requestData(url);
           })
           .then(({ data }) => {
-            const parsedData = (parse(data.contents, url));
-            if (Object.hasOwn(parsedData, 'error')) {
-              watchedState.status = 'invalid';
-              watchedState.error = 'parsingError';
-            }
             watchedState.status = 'completed';
-            const handledFeed = handleData(parsedData);
-            watchedState.feeds.push(handledFeed.feed);
-            watchedState.posts.push(...handledFeed.posts);
+            const { feed, posts } = handleResponse(url, data.contents, state);
+            watchedState.feeds.push(feed);
+            watchedState.posts.push(...posts);
+            setTimeout(() => refreshPosts(watchedState), 5000);
           })
           .catch((error) => {
-            console.log(error)
             watchedState.status = 'invalid';
-            watchedState.error = error.message.key;
+            watchedState.error = error;
           });
       });
     });
