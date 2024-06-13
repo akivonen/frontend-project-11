@@ -13,7 +13,9 @@ const parse = (url, xml) => {
   const data = parser.parseFromString(xml, 'application/xml');
   const errorNode = data.querySelector('parsererror');
   if (errorNode) {
-    throw new Error(errorNode.textContent);
+    const error = new Error(errorNode.textContent);
+    error.isParserError = true;
+    throw error;
   }
   const title = data.querySelector('title').textContent;
   const description = data.querySelector('description').textContent;

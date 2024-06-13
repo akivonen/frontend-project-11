@@ -7,30 +7,46 @@ import parse from './parse.js';
 import render from './render.js';
 import resources from './locales/index.js';
 
+const requestTimeout = 10000;
+const updateTimeout = 5000;
+
 const proxify = (url) => {
   const proxifiedUrl = new URL('/get', 'https://allorigins.hexlet.app');
   proxifiedUrl.searchParams.append('disableCache', true);
   proxifiedUrl.searchParams.append('url', url);
   return proxifiedUrl.toString();
 };
-const requestData = (url) => axios.get(proxify(url));
+const requestData = (url) => axios.get(proxify(url), { timeout: requestTimeout });
+const getPostsIds = (posts, feedId) => posts.map((post) => ({
+  ...post,
+  id: uniqueId(),
+  feedId,
+}));
 const handleData = (state, data) => {
   const feed = { ...data, id: uniqueId() };
-  const posts = feed.posts.map((post) => ({
-    ...post,
-    id: uniqueId(),
-    feedId: feed.id,
-  }));
-  const newPosts = posts.filter((newPost) => !state.posts
+  const newPosts = feed.posts.filter((newPost) => !state.posts
     .map((post) => (post.link))
     .includes(newPost.link));
-  return { feed, posts: newPosts };
+  const newPostsWithIds = getPostsIds(newPosts);
+  return { feed, posts: newPostsWithIds };
 };
 const handleResponse = (url, content, state) => {
   const parsedData = parse(url, content);
   return handleData(state, parsedData);
 };
-const refreshPosts = (watchedState) => {
+const handleError = (error) => {
+  if (error.isParserError) {
+    return 'parserError';
+  }
+  if (error.isAxiosError && error.code === 'ECONNABORTED') {
+    return 'timeoutError';
+  }
+  if (error.isAxiosError && error.code === 'ERR_NETWORK') {
+    return 'netWorkError';
+  }
+  return error.message.key ?? 'unknown error';
+};
+const updatePosts = (watchedState) => {
   const promises = watchedState.feeds.map((feed) => requestData(feed.url)
     .then(({ data }) => {
       const { posts } = handleResponse(feed.url, data.contents, watchedState);
@@ -42,7 +58,7 @@ const refreshPosts = (watchedState) => {
       console.log(`Error: ${error}, Feed url: ${feed.url}`);
     }));
   return Promise.all(promises)
-    .finally(() => setTimeout(() => refreshPosts(watchedState), 5000));
+    .finally(() => setTimeout(() => updatePosts(watchedState), updateTimeout));
 };
 
 const app = () => {
@@ -51,6 +67,10 @@ const app = () => {
     feeds: [],
     posts: [],
     error: null,
+    UIstate: {
+      modalId: null,
+      viewedPosts: [],
+    },
   };
   const elements = {
     form: document.querySelector('.rss-form'),
@@ -59,6 +79,7 @@ const app = () => {
     submit: document.querySelector('[type="submit"]'),
     feedsEl: document.querySelector('.feeds'),
     postsEl: document.querySelector('.posts'),
+    modalEl: document.querySelector('#modal'),
   };
   yup.setLocale({
     string: {
@@ -92,15 +113,22 @@ const app = () => {
           .then(({ data }) => {
             watchedState.status = 'completed';
             const { feed, posts } = handleResponse(url, data.contents, state);
-            watchedState.feeds.push(feed);
-            watchedState.posts.push(...posts);
-            setTimeout(() => refreshPosts(watchedState), 5000);
+            watchedState.feeds.unshift(feed);
+            watchedState.posts.unshift(...posts);
           })
           .catch((error) => {
-            watchedState.status = 'invalid';
-            watchedState.error = error;
+            watchedState.status = 'failed';
+            watchedState.error = handleError(error);
           });
       });
+      elements.postsEl.addEventListener('click', (event) => {
+        const { id } = event.target.dataset;
+        if (id) {
+          watchedState.UIstate.modalId = id;
+          state.UIstate.viewedPosts.push(id);
+        }
+      });
+      updatePosts(watchedState);
     });
 };
 

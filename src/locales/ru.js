@@ -8,7 +8,10 @@ export default {
       isNotUrl: 'Ссылка должна быть валидным URL',
       alreadyExists: 'RSS уже существует',
       emptyField: 'Не должно быть пустым',
-      parserError: 'Ошибка парсинга',
+      parserError: 'Ресурс не содержит валидный RSS',
+      timeoutError: 'Ошибка таймаута',
+      netWorkError: 'Ошибка сети',
+
     },
     elements: {
       buttonView: 'Просмотр',
