@@ -16,10 +16,12 @@ const renderProcessingState = ({ input, feedback, submit }, i18n) => {
   feedback.classList.remove('text-success', 'text-danger');
   feedback.textContent = i18n.t('status.processing');
 };
-const renderCompletedState = ({ input, feedback, submit }, i18n) => {
+const renderCompletedState = ({
+  form, input, feedback, submit,
+}, i18n) => {
   submit.disabled = false;
   input.classList.remove('is-invalid');
-  input.textContent = '';
+  form.reset();
   input.focus();
   feedback.classList.remove('text-danger');
   feedback.classList.add('text-success');
