@@ -83,11 +83,11 @@ const app = () => {
   };
   yup.setLocale({
     string: {
-      url: () => ({ key: 'errors.isNotUrl' }),
+      url: () => ({ key: 'isNotUrl' }),
     },
     mixed: {
-      required: () => ({ key: 'errors.emptyField' }),
-      notOneOf: () => ({ key: 'errors.alreadyExists' }),
+      required: () => ({ key: 'emptyField' }),
+      notOneOf: () => ({ key: 'alreadyExists' }),
     },
   });
   const i18n = i18next.createInstance();
