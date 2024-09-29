@@ -22,7 +22,7 @@ RSS Reader is a RSS feeds aggregator that helps you conveniently read a variety 
 - RSS Feeds Aggregation
 - Styling(bootstrap)
 
-# Installation
+### Installation
 ```
 git clone https://github.com/akivonen/brain-games.git
 #Install dependencies
