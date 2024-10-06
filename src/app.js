@@ -92,7 +92,7 @@ const app = () => {
   });
   const i18n = i18next.createInstance();
   i18n.init({
-    lng: 'ru',
+    lng: 'en',
     debug: false,
     resources,
   })
